@@ -8,27 +8,39 @@
 #include "AudioPlayer.h"
 
 const char* wifi_ssid = "AP_Name";
-const char* wifi_password = "AP_Password";
+const char* wifi_password = nullptr;
 
 LinkedList* fileList;
 int fileIndexPointer = 0;
 
+uint32_t lastConsoleUpdateTime = 0;
+
 void setup(){
 	delay(1000);
 	Serial.begin(115200);
+	
 	WiFi.mode(WIFI_STA);
-	WiFi.begin(wifi_ssid, wifi_password);
+	if(wifi_ssid && wifi_password) WiFi.begin(wifi_ssid, wifi_password);
+	
 	fileList = new LinkedList();
 	reloadSD();
+	
 	if(fileList->size) AudioPlayer.setSource(new Reader((char*)fileList->getEntry(fileIndexPointer)));
 }
-
 void loop(){
+	{
+		uint32_t time = millis();
+		if(time - lastConsoleUpdateTime >= 1000){//if 1 sec passed then
+			lastConsoleUpdateTime = time;
+			
+			printRam();
+		}
+	}
+	
 	int code = AudioPlayer.updateLoop();
 	if(code == 3){
-		Serial.println("AudioPlayer.closeSource()");
 		AudioPlayer.closeSource();
-		if(fileList->size){
+		if(fileList->size){//if there is at least 1 file in list then
 			fileIndexPointer = (fileIndexPointer + 1) % fileList->size;
 			Serial.print("AudioPlayer.setSource() -> ");
 			Serial.println((char*)fileList->getEntry(fileIndexPointer));
@@ -37,8 +49,6 @@ void loop(){
 	} else if(code){
 		Serial.print("AudioPlayer error code = ");
 		Serial.println(code);
-	} else {
-		printRam2();
 	}
 }
 
@@ -121,7 +131,7 @@ void scanFileSystem(){
 	scanDir((char*)rootDirName, 0);
 }
 
-int getMaxAllocatableSpace2(){
+int getMaxAllocatableSpace(){//approximates the free ram by trying to allocate as much space as possible.
 	const int blockSize = 5000;
 	void* ptrs[200];
 	int i;
@@ -136,7 +146,8 @@ int getMaxAllocatableSpace2(){
 	}
 	return capacity;
 }
-void printRam2(){
-	print("Ram: ");
-	nprintln(getMaxAllocatableSpace2());
+void printRam(){
+	print("Free Ram: ");
+	nprint(getMaxAllocatableSpace() / 1024);
+	print(" KB");
 }
