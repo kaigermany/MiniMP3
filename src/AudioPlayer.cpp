@@ -190,6 +190,14 @@ void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, 
 	AudioOutputStream.write(outputAudio, numSamples);
 }
 
+void AudioPlayerClass::awaitBufferDrained(){
+	while(1){
+		char code = updateLoop();
+		if(code) break;
+		delay(10);
+	}
+}
+
 void AudioPlayerClass::setSource(Reader* reader){
 	currentSource = reader;
 	if(currentSource){
@@ -203,16 +211,14 @@ void AudioPlayerClass::setSource(Reader* reader){
 }
 
 void AudioPlayerClass::closeSource(){
-	if(currentSource){
-		currentSource->close();
-		free(currentSource);
-		currentSource = 0;
-	}
-}
-
-void AudioPlayerClass::close(){
-	AudioOutputStream.stop();
-	closeSource();
+	if(!currentSource) return;
+	currentSource->close();
+	
+	awaitBufferDrained();
+	
+	free(currentSource);
+	currentSource = 0;
+	
 	if(wav){
 		free(wav);
 		wav = 0;
@@ -223,6 +229,25 @@ void AudioPlayerClass::close(){
 		mp3 = 0;
 	}
 	
+}
+
+void AudioPlayerClass::close(){
+	if(inputBuffer){
+		LinkedListEntry* next = inputBuffer->firstEntry;
+		//Serial.println("restoreOffsets():");
+		while(next){
+			ReadableBlock* block = (ReadableBlock*)(next->object);
+			free(block->buf);
+			next = next->next;
+		}
+		inputBuffer->clear();
+		
+		closeSource();
+		
+		free(inputBuffer);
+		inputBuffer = 0;
+	}
+	AudioOutputStream.stop();
 }
 
 void AudioPlayerClass::backupOffsets(){

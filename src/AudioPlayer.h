@@ -35,6 +35,7 @@ class AudioPlayerClass{
 		static char updateLoop();
 		static long long getCurrentSampleCount();
 		static bool isReaderClosed();
+		static void awaitBufferDrained();
 };
 
 extern AudioPlayerClass AudioPlayer;
