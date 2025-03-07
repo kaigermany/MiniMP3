@@ -10,7 +10,7 @@ class Reader{
 		File* file;
 		
 		WiFiClientSecure* client;
-		long long bytesLeft;
+		uint64_t bytesLeft;
 		
 		inline int file_read_impl(char* buffer, int numBytes);
 		inline int https_read_impl(char* buffer, int numBytes);

@@ -33,7 +33,7 @@ inline int Reader::https_read_impl(char* buffer, int numBytes){
 
 Reader::Reader(char* server, char* path) {
 	file = 0;
-	WiFiClientSecure* client = new WiFiClientSecure();
+	client = new WiFiClientSecure();
 	if(!client) return;
 	client->setInsecure();
 	if(client->connect(server, 443)){
@@ -53,7 +53,7 @@ Reader::Reader(char* server, char* path) {
 		int currHeaderStrLen = 0;
 		const char* ContentLengthStr = "Content-Length: ";
 		bool isContentLen = true;
-		long long lenVal = -1;
+		uint64_t lenVal = -1;
 		while(client->connected()){
 			int chr = client->read();
 			if(chr == -1) continue;
@@ -80,7 +80,7 @@ Reader::Reader(char* server, char* path) {
 			}
 			
 			currHeaderStrLen++;
-		}
+		};
 		bytesLeft = lenVal;
 		client = client;
 	}
