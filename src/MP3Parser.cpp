@@ -1827,13 +1827,12 @@ int decodeFrame(int header_sample_frequency, Mp3Instance* mp3Instance, char* fra
 			int main_data_end = mp3Instance->frame_start - (mp3Instance->bufReadPointer >> 3); // of previous frame
 			int bytes_to_discard = main_data_end - mainDataBegin;
 
-			if (bytes_to_discard < 0) {
-				//TEST
+			if (bytes_to_discard < 0) {//if data buffers arent filled correctly
 				mp3Instance->bufReadPointer = 0;
 				mp3Instance->frame_start += nSlots;
-				hputbuf_array(mp3Instance, frameBuffer, mp3Instance->isStereo ? 32 : 17, nSlots);
-				return 0;
-				
+				hputbuf_array(mp3Instance, frameBuffer, mp3Instance->isStereo ? 32 : 17, nSlots);//put new bytes into buffer
+				for(int i=0; i<2 * 1152; i++) samplesBuffer[i] = 0;//bring output from random-state to 0-state.
+				return 0;//return as like decoding was not a probem.
 				//return MP3_ERRORCODE_NEGATIVE_DISCARD;
 			}
 			int alreadyReadBytes = mp3Instance->bufReadPointer / 8;
@@ -2099,14 +2098,15 @@ char* MP3Parser::runDecode(LinkedList* dataBlocks, int* errorIdOutput){
 	
 	
 	if(layer != 0b01){
-		
-		println("unsupported codec! must be layer III mp3!!!");
+		println("unsupported codec! must be layer III mp3!");
 		
 		short* samplesBuffer = (short*)malloc(2 * 1152 * 2);
 		if(!samplesBuffer) {
 			errorIdOutput[0] = MP3_ERRORCODE_INSUFFICENT_MEMORY;
 			return 0;
 		}
+		for(int i=0; i<2 * 1152; i++) samplesBuffer[i] = 0;//bring output from random-state to 0-state.
+		
 		MP3Parser::samplingFrequency = SAMPLING_FREQUENCY[samplingFrequency];
 
 		errorIdOutput[0] = MP3_ERRORCODE_NONE;
