@@ -9,11 +9,12 @@ A lightweight minimal MP3 and WAV audio library for ESP32 microcontrollers, opti
 - **Optimized for ESP32**: Designed for low-memory environments.
 
 ## Hardware Compatibility
-- Tested on **ESP32-WROOM32**.
+- Tested on **ESP32-WROOM-32**.
 - Note: ensure that the clock is set to 240MHz, otherwise MP3 decoding is maybe too slow and the sound begin falter.
 
 ## Getting Started
 1: Connect an SD card or use WiFi as an audio Source.
+
 2: Use the ESP32 DAC pins to connect speakers or an amplifier, for ground i highly recomment a voltage divider.
 
 ## License
