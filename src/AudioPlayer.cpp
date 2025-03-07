@@ -198,43 +198,47 @@ void AudioPlayerClass::awaitBufferDrained(){
 	}
 }
 
+//set a new input source and 
 void AudioPlayerClass::setSource(Reader* reader){
+	closeSource();//ensure last reader is closed.
 	currentSource = reader;
-	if(currentSource){
-		AudioOutputStream.start();
-		fillReadBuffers();
-		lastSuccessfullRead = millis();
-		detectDecoder();
-	} else {
-		println("source = null.");
+	if(currentSource){//if reader is not null init decoder pipeline.
+		AudioOutputStream.start();		//start player timer
+		fillReadBuffers();				//read first blocks
+		lastSuccessfullRead = millis();	//reset timeout value
+		detectDecoder();				//detect media type by the first data read.
+		if(mp3 == nullptr && wav == nullptr){//none triggered?
+			close();//save close of everything
+		}
 	}
 }
 
+//closes the current source and await the decoding of all buffers left in input queue.
 void AudioPlayerClass::closeSource(){
 	if(!currentSource) return;
-	currentSource->close();
+	currentSource->close();//future read() calls return -1 in any case.
 	
-	awaitBufferDrained();
+	awaitBufferDrained();//flush
 	
-	free(currentSource);
+	free(currentSource);//drop reader object
 	currentSource = 0;
 	
-	if(wav){
+	if(wav){//drop wav header
 		free(wav);
 		wav = 0;
 	}
-	if(mp3){
+	if(mp3){//drop mp3 instance
 		mp3->~MP3Parser();
 		free(mp3);
 		mp3 = 0;
 	}
-	
 }
 
+//closes and deallocated the player.
 void AudioPlayerClass::close(){
 	if(inputBuffer){
+		
 		LinkedListEntry* next = inputBuffer->firstEntry;
-		//Serial.println("restoreOffsets():");
 		while(next){
 			ReadableBlock* block = (ReadableBlock*)(next->object);
 			free(block->buf);
@@ -242,12 +246,13 @@ void AudioPlayerClass::close(){
 		}
 		inputBuffer->clear();
 		
+		//now no buffers are left to play in drain loop.
 		closeSource();
 		
-		free(inputBuffer);
+		free(inputBuffer);//drop input list pointer
 		inputBuffer = 0;
 	}
-	AudioOutputStream.stop();
+	AudioOutputStream.stop();//drop output buffers & stop player timer
 }
 
 void AudioPlayerClass::backupOffsets(){
