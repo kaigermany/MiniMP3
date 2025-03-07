@@ -18,7 +18,7 @@ class AudioOutputStreamClass {
 		static struct DataEntryStruct* lastFrame;
 		static int playbackPointer;
 		static int bufferSize;
-		static long long timerTriggerCounter;
+		static uint64_t timerTriggerCounter;
 		
 		static void timerListener();
 		
@@ -26,8 +26,8 @@ class AudioOutputStreamClass {
 		static void start();
 		static void stop();
 		static void write(void* buf, int numBytes);
-		static int getCurrentBufferSize();
-		static long long getCurrentSampleCount();
+		static int getCurrentBufferElementCount();
+		static uint64_t getCurrentSampleCount();
 };
 extern AudioOutputStreamClass AudioOutputStream;
 #endif
