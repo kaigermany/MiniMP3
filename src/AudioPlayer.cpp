@@ -78,8 +78,8 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 		if(!inputBuffer) return 1;
 	}
 	const int bufSize = 512*2;
-	for(int retryCounter=0; retryCounter<16; retryCounter++){
-		if(inputBuffer->size >= 16) return 0;//return that our buffer is greatly filled.
+	for(int retryCounter=0; retryCounter<4; retryCounter++){
+		if(inputBuffer->size >= 10) return 0;//return that our buffer is greatly filled.
 		
 		char* buf = (char*)malloc(bufSize);
 		if(!buf) return 1;
@@ -89,24 +89,17 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 			return 1;
 		}
 		int l = currentSource->read(buf, bufSize);//-1: EOF, 0: no new bytes right now, 1..?: len of buf
-		//print("fillReadBuffers(): l = ");
-		//nprintln(l);
 		if(l == 0){
 			free(block);
 			free(buf);
 			return 2;
 		}
 		if(l == -1){
-			println("cp#1");
 			currentSource->close();
-			println("cp#2");
 			free(currentSource);
-			println("cp#3");
 			currentSource = 0;
 			free(block);
-			println("cp#4");
 			free(buf);
-			println("cp#5");
 			return 2;
 		}
 		if(l < bufSize) buf = (char*)realloc(buf, l);//shrink if possible, mostly used on WEB sources.
@@ -195,32 +188,6 @@ void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, 
 		}
 	}
 	AudioOutputStream.write(outputAudio, numSamples);
-}
-
-int getMaxAllocatableSpace(){
-	const int blockSize = 5000;//1024;
-	void* ptrs[200];
-	int i;
-	for(i=0; i<200; i++){
-		ptrs[i] = malloc(blockSize);
-		if(!ptrs[i]) break;
-	}
-	int capacity = i * blockSize;
-	while(i > 0){
-		i--;
-		free((void*)ptrs[i]);
-	}
-	/*
-	if(capacity > 8192){
-		capacity = getMaxAllocatableSpace2();
-	}
-	*/
-	return capacity;
-}
-
-void printRam(){
-	print("Ram: ");
-	nprintln(getMaxAllocatableSpace());
 }
 
 void AudioPlayerClass::setSource(Reader* reader){
@@ -336,58 +303,22 @@ int DataReader_read2(LinkedList* list){
 }
 
 char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header found, 1: OutOfMemory
-	println("updateLoop()::begin");
 	const int timeoutMaxDurationMillis = 50;
 	if(!currentSource) {
 		return 3;
 	}
-	/*
-	uint32_t startTime = millis();
-	while(1){
-		int returnCode = fillReadBuffers();//TODO add timeout check.
-		if(inputBuffer->size > 0 || returnCode == 1) break;//if has data or OOM then break loop.
-		if(returnCode == 2){
-			if(millis() - startTime > timeoutMaxDurationMillis){
-				return 3;
-			} else {
-				continue;
-			}
-		}
-	}
-	*/
-	int returnCode = fillReadBuffers();
-	//print("fillReadBuffers(): returnCode = ");
-	//nprintln(returnCode);
 	
-	if(returnCode == 0){
-		lastSuccessfullRead = millis();
-	} else if(returnCode == 2){
-		if(millis() - lastSuccessfullRead > timeoutMaxDurationMillis){
-			return 3;
-		}
-	}
-	println("updateLoop()::data loaded");
-	for(char maxRetrys=0; maxRetrys<1 && AudioOutputStream.getCurrentBufferSize() < 10000; maxRetrys++){
+	for(char maxRetrys=0; maxRetrys<2 && AudioOutputStream.getCurrentBufferElementCount() < 5; maxRetrys++){
 		if(mp3){
 			backupOffsets();
 			int errorCode[1];
 			char* data = mp3->runDecode(inputBuffer, &(errorCode[0]));
 			int error = errorCode[0];
 			if(!data && error){
-				print("mp3 error code: ");
-				nprintln(error);
 				int dataWasAdded = 0;
 				if(error == MP3_ERRORCODE_END_OF_INPUT_BUFFER_REACHED){//ran dry...
-					println("restoreOffsets()::begin");
-					printRam();
 					restoreOffsets();
-					println("restoreOffsets()::end");
-					printRam();
-					//refreshBufferList();
-					//dataWasAdded = readNextDataBlock();
 					fillReadBuffers();
-	println("fillReadBuffers #2 done.");
-	printRam();
 					if(inputBuffer->size == 0) return 3;
 					break;
 				} else if(error == MP3_ERRORCODE_BUFFER_HAS_NO_STARTSEQUENCE){//current buffer does not contain any usable data!
@@ -399,19 +330,26 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 				} else if(error == MP3_ERRORCODE_INSUFFICENT_MEMORY/* && getNumBlocksInDACBuffer() > 0*/){
 					restoreOffsets();
 					//refreshBufferList();
-					//delay(1);
-					//continue;
 					return 1;
 				} else {
-					Serial.print("errorCode = ");
+					Serial.print("mp3 errorCode = ");
 					Serial.println(error);
 				}
 			} else {
-				refreshBufferList();
+				refreshBufferList();//removes used buffers.
 			}
 			prepareAndStoreAudio(data, mp3->lastFrameSampleCount, mp3->isStereo, mp3->samplingFrequency, autoAmplify);
 			free(data);
 		} else if(wav){
+			
+			int returnCode = fillReadBuffers();
+			if(returnCode == 0){
+				lastSuccessfullRead = millis();
+			} else if(returnCode == 2){
+				if(millis() - lastSuccessfullRead > timeoutMaxDurationMillis){
+					return 3;
+				}
+			}
 			
 			if(inputBuffer && inputBuffer->firstEntry){
 				int len = 512*16;
