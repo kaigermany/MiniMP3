@@ -195,6 +195,7 @@ void AudioPlayerClass::setSource(Reader* reader){
 	if(currentSource){
 		AudioOutputStream.start();
 		fillReadBuffers();
+		lastSuccessfullRead = millis();
 		detectDecoder();
 	} else {
 		println("source = null.");
@@ -303,10 +304,12 @@ int DataReader_read2(LinkedList* list){
 }
 
 char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header found, 1: OutOfMemory
-	const int timeoutMaxDurationMillis = 50;
+	const int timeoutMaxDurationMillis = 1500;
 	if(!currentSource) {
 		return 3;
 	}
+	
+	if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
 	
 	for(char maxRetrys=0; maxRetrys<2 && AudioOutputStream.getCurrentBufferElementCount() < 5; maxRetrys++){
 		if(mp3){
@@ -318,14 +321,14 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 				int dataWasAdded = 0;
 				if(error == MP3_ERRORCODE_END_OF_INPUT_BUFFER_REACHED){//ran dry...
 					restoreOffsets();
-					fillReadBuffers();
-					if(inputBuffer->size == 0) return 3;
+					if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
+					if(inputBuffer->size == 0) goto checkForTimeout;
 					break;
 				} else if(error == MP3_ERRORCODE_BUFFER_HAS_NO_STARTSEQUENCE){//current buffer does not contain any usable data!
 					refreshBufferList();//this way we may get rid of empty sectors.
 					//dataWasAdded = readNextDataBlock();
-					fillReadBuffers();
-					if(inputBuffer->size == 0) return 3;//if no more data left then return EOF state.
+					if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
+					if(inputBuffer->size == 0) goto checkForTimeout;//if no more data left then return EOF state.
 					return 2;
 				} else if(error == MP3_ERRORCODE_INSUFFICENT_MEMORY/* && getNumBlocksInDACBuffer() > 0*/){
 					restoreOffsets();
@@ -337,6 +340,7 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 				}
 			} else {
 				refreshBufferList();//removes used buffers.
+				lastSuccessfullRead = millis();
 			}
 			prepareAndStoreAudio(data, mp3->lastFrameSampleCount, mp3->isStereo, mp3->samplingFrequency, autoAmplify);
 			free(data);
@@ -346,9 +350,7 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 			if(returnCode == 0){
 				lastSuccessfullRead = millis();
 			} else if(returnCode == 2){
-				if(millis() - lastSuccessfullRead > timeoutMaxDurationMillis){
-					return 3;
-				}
+				goto checkForTimeout;
 			}
 			
 			if(inputBuffer && inputBuffer->firstEntry){
@@ -393,6 +395,15 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 		}
 	}
 	return 0;
+	
+	checkForTimeout:
+	if(millis() - lastSuccessfullRead > timeoutMaxDurationMillis){
+		print("timed out: ");
+		nprintln((int)(millis() - lastSuccessfullRead));
+		return 3;
+	} else {
+		return 0;
+	}
 }
 
 inline long long AudioPlayerClass::getCurrentSampleCount(){
