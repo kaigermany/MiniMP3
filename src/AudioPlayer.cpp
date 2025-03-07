@@ -377,14 +377,14 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 		} else if(wav){
 			
 			int returnCode = fillReadBuffers();
-			if(returnCode == 0){
-				lastSuccessfullRead = millis();
-			} else if(returnCode == 2){
+			if(returnCode == 2){
 				goto checkForTimeout;
+			} else {
+				lastSuccessfullRead = millis();
 			}
 			
 			if(inputBuffer && inputBuffer->firstEntry){
-				int len = 512*16;
+				int len = 512*8;
 				char* outBuf = (char*)malloc(len);
 				if(!outBuf) return 1;
 				
