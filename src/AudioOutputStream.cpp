@@ -9,7 +9,6 @@
 #include "soc/sens_reg.h"
 #include "soc/rtc.h"
 
-
 #define DAC1_PIN 25//standard DAC pins, but read your specific datasheet to ensure you get the right pins.
 #define DAC2_PIN 26
 #define ClockFrequenzyMHz 80
@@ -78,6 +77,7 @@ void AudioOutputStreamClass::start(){
 	timerAttachInterrupt(Timer0_Cfg, &Timer0_ISR, true);
 	timerAlarmWrite(Timer0_Cfg, 22, true); // Alarm value set to 22
 	timerAlarmEnable(Timer0_Cfg);
+	timerStart(Timer0_Cfg);
 	
 	CLEAR_PERI_REG_MASK(SENS_SAR_DAC_CTRL2_REG, SENS_DAC_CW_EN1_M);
 	CLEAR_PERI_REG_MASK(SENS_SAR_DAC_CTRL2_REG, SENS_DAC_CW_EN2_M);
@@ -89,9 +89,11 @@ void AudioOutputStreamClass::start(){
 //call to shutdown everything and clean up.
 void AudioOutputStreamClass::stop(){
 	if(Timer0_Cfg){
-		timerEnd(Timer0_Cfg);
-		timerDetachInterrupt(Timer0_Cfg);
-		Timer0_Cfg = NULL;
+		timerAlarmDisable(Timer0_Cfg);		// Disable further alarms
+		timerDetachInterrupt(Timer0_Cfg);	// Detach the ISR to clear the callback
+		timerStop(Timer0_Cfg);				// Stop the timer counter
+		timerEnd(Timer0_Cfg);				// Free up the timer resources
+		Timer0_Cfg = nullptr;
 	}
 	while(firstFrame){
 		DataEntry* next = firstFrame->nextEntryPtr;

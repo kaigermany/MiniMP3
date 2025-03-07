@@ -2,8 +2,8 @@
 #ifndef AudioOutputStream_H
 #define AudioOutputStream_H
 #include <Arduino.h>
+
 class AudioOutputStreamClass {
-	
 	typedef struct DataEntryStruct {
 		char* dataPtr;
 		struct DataEntryStruct* nextEntryPtr;
