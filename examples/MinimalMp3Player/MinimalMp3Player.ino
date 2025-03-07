@@ -14,6 +14,7 @@ LinkedList* fileList;
 int fileIndexPointer = 0;
 
 uint32_t lastConsoleUpdateTime = 0;
+uint32_t computationTime = 0;
 
 void setup(){
 	delay(1000);
@@ -25,20 +26,46 @@ void setup(){
 	fileList = new LinkedList();
 	reloadSD();
 	
-	if(fileList->size) AudioPlayer.setSource(new Reader((char*)fileList->getEntry(fileIndexPointer)));
+	Serial.print("WiFi Connecting ..");
+	int abbortTimer = 5 * 2;
+	while (WiFi.status() != WL_CONNECTED && abbortTimer > 0) {
+		Serial.print('.');
+		delay(500);
+		abbortTimer--;
+	}
+	
+	if(WiFi.status() == WL_CONNECTED){
+		Serial.println("WiFi Connected!");
+		Serial.print("WiFi Local IP: ");
+		Serial.println(WiFi.localIP());
+		Serial.print("WiFi RSSI: ");
+		Serial.println(WiFi.RSSI());
+		
+		Serial.println("Schwarzwald Radio livestream");
+		AudioPlayer.setSource(new Reader((char*)"edge09.streamonkey.net", (char*)"/fho-schwarzwaldradiolive/stream/mp3"));
+	} else {
+		WiFi.disconnect();
+		Serial.println("WiFi not ready.");
+		
+		if(fileList->size) AudioPlayer.setSource(new Reader((char*)fileList->getEntry(fileIndexPointer)));
+	}
 }
 void loop(){
-	{
-		uint32_t time = millis();
-		if(time - lastConsoleUpdateTime >= 1000){//if 1 sec passed then
-			lastConsoleUpdateTime = time;
-			
-			printRam();
-		}
+	uint32_t time = millis();
+	if(time - lastConsoleUpdateTime >= 1000){//if 1 sec passed then
+		lastConsoleUpdateTime = time;
+		int usage = computationTime / 10; //1000ms = 100% usage
+		computationTime = 0;
+		
+		Serial.print("CPU: ");
+		Serial.print(usage);
+		Serial.print("%, ");
+		printRam();
 	}
 	
 	int code = AudioPlayer.updateLoop();
-	if(code == 3){
+	computationTime += millis() - time;
+	if(code == 3){//track end?
 		AudioPlayer.closeSource();
 		if(fileList->size){//if there is at least 1 file in list then
 			fileIndexPointer = (fileIndexPointer + 1) % fileList->size;
@@ -149,5 +176,5 @@ int getMaxAllocatableSpace(){//approximates the free ram by trying to allocate a
 void printRam(){
 	print("Free Ram: ");
 	nprint(getMaxAllocatableSpace() / 1024);
-	print(" KB");
+	println(" KB");
 }
