@@ -132,5 +132,10 @@ uint64_t AudioOutputStreamClass::getCurrentSampleCount(){
 	return timerTriggerCounter;
 }
 
+void AudioOutputStreamClass::setCurrentSampleCount(uint64_t newValue){
+	timerTriggerCounter = newValue;
+}
 
-
+AudioOutputStreamClass::DataEntry* AudioOutputStreamClass::getCurrentSampleBufferRef(){//the object will disappear in very short time!
+	return AudioOutputStreamClass::firstFrame;
+}

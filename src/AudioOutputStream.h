@@ -4,12 +4,13 @@
 #include <Arduino.h>
 
 class AudioOutputStreamClass {
-	typedef struct DataEntryStruct {
-		char* dataPtr;
-		struct DataEntryStruct* nextEntryPtr;
-		unsigned short size;
-	} DataEntry;
-	
+	public:
+		typedef struct DataEntryStruct {
+			char* dataPtr;
+			struct DataEntryStruct* nextEntryPtr;
+			unsigned short size;
+		} DataEntry;
+		
 	private:
 		static void IRAM_ATTR Timer0_ISR();
 		static hw_timer_t *Timer0_Cfg;
@@ -28,6 +29,8 @@ class AudioOutputStreamClass {
 		static void write(void* buf, int numBytes);
 		static int getCurrentBufferElementCount();
 		static uint64_t getCurrentSampleCount();
+		static void setCurrentSampleCount(uint64_t newValue);
+		static AudioOutputStreamClass::DataEntry* getCurrentSampleBufferRef();
 };
 extern AudioOutputStreamClass AudioOutputStream;
 #endif
