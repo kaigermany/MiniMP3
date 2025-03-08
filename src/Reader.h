@@ -19,7 +19,7 @@ class Reader{
 		Reader(char* filepath);
 		Reader(File* file);
 		~Reader();
-		//int (*read)(char* buffer, int numBytes);
+		
 		int read(char* buffer, int numBytes);
 		void close();
 };

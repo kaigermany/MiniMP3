@@ -40,34 +40,28 @@ println("mp3 detected.");
 		}
 	}
 	
-	{
-		WAVHeader* header = WAV.parseWAVHeader(data, len);
-		if(header){
-			if(!header->errorText){
-println("wav detected.");
-				wav = header;
-				int skipBytes = header->dataStart;
-print("skipBytes = ");
-nprintln(skipBytes);
-				while(skipBytes){
-					block = (ReadableBlock*)inputBuffer->firstEntry->object;
-					
-					if(block->len - block->off > skipBytes){
-						block->off += skipBytes;
-						return;
-					} else {
-						free(block->buf);
-						skipBytes -= block->len - block->off;
-						inputBuffer->removeFirstEntry();
-						free(block);
-						if(!inputBuffer->firstEntry) break;
-					}
+	WAVHeader* header = WAV.parseWAVHeader(data, len);
+	if(header){
+		if(!header->errorText){
+			wav = header;
+			int skipBytes = header->dataStart;
+			while(skipBytes){
+				block = (ReadableBlock*)inputBuffer->firstEntry->object;
+				
+				if(block->len - block->off > skipBytes){
+					block->off += skipBytes;
+					return;
+				} else {
+					free(block->buf);
+					skipBytes -= block->len - block->off;
+					inputBuffer->removeFirstEntry();
+					free(block);
+					if(!inputBuffer->firstEntry) break;
 				}
-print("WAV: incomplete header skip -> ");
-nprintln(skipBytes);
-				//Serial.println("WAV: incomplete header skip. expect errors in playback.");
-				return;
 			}
+			print("WAV: incomplete header skip -> ");
+			nprintln(skipBytes);
+			return;
 		}
 	}
 }
@@ -115,16 +109,15 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 
 void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, int freq, bool autoAmplify){
 	int numSamples = isStereo ? (len / 4) : (len / 2);//16 bit stereo or mono.
-	char* outputAudio = (char*)malloc(numSamples*2);
-	//DataEntry* entry = (DataEntry*)malloc(numSamples*2 + 4);//8 bit stereo.
+	char* outputAudio = (char*)malloc(numSamples*2);//8 bit stereo.
 	if(!outputAudio) {
 		return;
 	}
 	
-	if(freq > 44100){//TRUE
+	if(freq > 44100){
 		int numSamples2 = (int)( (long long)numSamples * (long long)44100 / (long long)freq );
 
-		if(isStereo){//TRUE
+		if(isStereo){
 			uint32_t* samplePtr = (uint32_t*)data;
 			for(int i=0; i<numSamples2; i++){
 				int rp = (int)( (long long)i * (long long)freq / (long long)44100 );
@@ -173,7 +166,7 @@ void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, 
 		}
 	}
 	
-	if(isStereo){//TRUE
+	if(isStereo){
 		int l = numSamples * 2;
 		for(int i=0; i<l; i++){
 			outputAudio[i] = (char)(arr[i]);
@@ -256,23 +249,19 @@ void AudioPlayerClass::close(){
 }
 
 void AudioPlayerClass::backupOffsets(){
-	//Serial.println("backupOffsets():");
 	LinkedListEntry* next = inputBuffer->firstEntry;
 	while(next){
 		ReadableBlock* block = (ReadableBlock*)(next->object);
 		block->offsetRestore = block->off;
-		//Serial.println(block->off);
 		next = next->next;
 	}
 }
 
 void AudioPlayerClass::restoreOffsets(){
 	LinkedListEntry* next = inputBuffer->firstEntry;
-	//Serial.println("restoreOffsets():");
 	while(next){
 		ReadableBlock* block = (ReadableBlock*)(next->object);
 		block->off = block->offsetRestore;
-		//Serial.println(block->off);
 		next = next->next;
 	}
 }
@@ -356,13 +345,11 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 					break;
 				} else if(error == MP3_ERRORCODE_BUFFER_HAS_NO_STARTSEQUENCE){//current buffer does not contain any usable data!
 					refreshBufferList();//this way we may get rid of empty sectors.
-					//dataWasAdded = readNextDataBlock();
 					if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
 					if(inputBuffer->size == 0) goto checkForTimeout;//if no more data left then return EOF state.
 					return 2;
 				} else if(error == MP3_ERRORCODE_INSUFFICENT_MEMORY/* && getNumBlocksInDACBuffer() > 0*/){
 					restoreOffsets();
-					//refreshBufferList();
 					return 1;
 				} else {
 					Serial.print("mp3 errorCode = ");
@@ -443,4 +430,3 @@ inline long long AudioPlayerClass::getCurrentSampleCount(){
 inline bool AudioPlayerClass::isReaderClosed(){
 	return currentSource == 0;
 }
-

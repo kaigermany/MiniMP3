@@ -17,7 +17,6 @@ MP3Parser::MP3Parser() : instance(nullptr) {
 	a->frame_start = 0;
 	a->bufReadPointer = 0;
 	a->bufWritePointer = 0;
-	//a->lastNumBytesRead = 0;
 	
 	for (int ch = 0; ch < 2; ch++) {
 		for (int j = 0; j < 576; j++) {
@@ -46,9 +45,7 @@ int readBitsFromBuffer(char* frameBuffer, int frameSize, int* frameBufferReadPos
 	frameSize *= 8;
 	int bitIndex = frameBufferReadPos[0];
 	while (bitsToRead > 0) {
-		if (bitIndex >= frameSize) {
-			//throw new IndexOutOfBoundsException("Reached end of buffer");
-			//println("Reached end of buffer");
+		if (bitIndex >= frameSize) {//Reached end of buffer?
 			return -1;
 		}
 
@@ -975,18 +972,6 @@ void reorder(float(*xr_1d)[SS_LIMIT], int ch, int gr, gr_info_s* gr_info, int sf
 }
 
 void i_stereo_k_values(char is_pos, int io_type, int i, Mp3Instance* mp3Instance) {
-	/*
-	if (is_pos == 0) {
-		mp3Instance->k[0][i] = 1;
-		mp3Instance->k[1][i] = 1;
-	} else if ((is_pos & 1) != 0) {
-		mp3Instance->k[0][i] = io[io_type][(unsigned int)(is_pos + 1) >> 1];
-		mp3Instance->k[1][i] = 1;
-	} else {
-		mp3Instance->k[0][i] = 1;
-		mp3Instance->k[1][i] = io[io_type][(unsigned int)is_pos >> 1];
-	}
-	*/
 	if (is_pos == 0) {
 		mp3Instance->k[0][i] = 0;
 		mp3Instance->k[1][i] = 0;
@@ -1646,14 +1631,6 @@ void hybrid(int ch, int gr, gr_info_s* gr_info, float(*prvblk)[SB_LIMIT*SS_LIMIT
 	}
 }
 
-
-
-
-
-
-
-
-
 void SynthesisFilter_compute_pcm_samples4_universal(float* v, int offset, int actual_write_pos, float* tmpOut) {
 	//offset = 0 or 512 only
 	//actual_write_pos = 0..15
@@ -1781,6 +1758,7 @@ void SynthesisFilter_input_and_compute(float* s, int pos, float* output, float* 
 int decodeFrame(int header_sample_frequency, Mp3Instance* mp3Instance, char* frameBuffer, 
 		int frameSize, int header_mode, int header_version, int header_mode_extension, short* samplesBuffer,
 		int header_bitrate_index, int header_padding_bit, int header_protection_bit){
+			
 	int sfreq = header_sample_frequency + ((header_version == MPEG1) ? 3 : (header_version == MPEG25_LSF) ? 6 : 0);
 	int channels = (header_mode == SINGLE_CHANNEL) ? 1 : 2;
 	
@@ -2062,8 +2040,6 @@ char* MP3Parser::runDecode(LinkedList* dataBlocks, int* errorIdOutput){
 		if (version == MPEG2_LSF) {
 			version = MPEG25_LSF;
 		} else {
-			//print("expected MPEG2_LSF but got ");
-			//nprintln(version);
 			errorIdOutput[0] = MP3_ERRORCODE_INVALID_MPEG_VERSION_CONFIG;
 			return 0;
 		}
@@ -2076,7 +2052,6 @@ char* MP3Parser::runDecode(LinkedList* dataBlocks, int* errorIdOutput){
 	int bitrateIndex = ((read2 >> 4) & 15);
 	int samplingFrequency = ((read2 >> 2) & 3);
 	if(samplingFrequency == 3){
-		//println("invalid samplingFrequency!");
 		errorIdOutput[0] = MP3_ERRORCODE_INVALID_SAMPLEINGFREQUENCY_CONFIG;
 		return 0;
 	}
@@ -2116,8 +2091,6 @@ char* MP3Parser::runDecode(LinkedList* dataBlocks, int* errorIdOutput){
 	} //else: do layer III decoding...
 	
 	
-	
-	
 	int frameSize = (144 * BITRATE_LAYER_III[bitrateIndex]) / SAMPLING_FREQUENCY[samplingFrequency] + paddingBit - 4;
 	
 	char* frameBuffer = (char*)malloc(frameSize);
@@ -2127,11 +2100,9 @@ char* MP3Parser::runDecode(LinkedList* dataBlocks, int* errorIdOutput){
 	}
 	if(!DataReader_readArr(dataBlocks, frameBuffer, frameSize)){
 		errorIdOutput[0] = MP3_ERRORCODE_END_OF_INPUT_BUFFER_REACHED;
-		//println("DataReader_readArr() -> too less data in buffer!");
 		free(frameBuffer);
 		return 0;
 	}
-	//byte[] samplesBuffer = new byte[18 * 32 * 2 * ((state.stereo ? 2 : 1) * 2)];
 	short* samplesBuffer = (short*)malloc(2 * 1152 * 2);
 	if(!samplesBuffer) {
 		errorIdOutput[0] = MP3_ERRORCODE_INSUFFICENT_MEMORY;
@@ -2144,7 +2115,6 @@ char* MP3Parser::runDecode(LinkedList* dataBlocks, int* errorIdOutput){
 	free(frameBuffer);
 	
 	if(errorcode == 0){
-		
 		MP3Parser::samplingFrequency = SAMPLING_FREQUENCY[samplingFrequency];
 
 		errorIdOutput[0] = MP3_ERRORCODE_NONE;

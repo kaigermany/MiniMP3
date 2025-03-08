@@ -8,7 +8,6 @@ typedef struct WAVHeaderStruct {
 	short numChannels;
 	int sampleRate;
 	int bitsPerSample;
-	//char errorCode;
 	char* errorText;
 } WAVHeader;
 

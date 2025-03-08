@@ -1,7 +1,6 @@
 
 #include "LinkedList.h"
 
-
 LinkedList::LinkedList() : size(0),firstEntry(nullptr),lastEntry(nullptr) {}
 LinkedList::~LinkedList(){
 	clear();
@@ -23,10 +22,9 @@ void LinkedList::removeEntry(void* obj){
 	if(!curr) return;
 	
 	if(curr->object == obj){//if isFirstEntry
-		//char isLastEntry = curr == lastEntry;
 		firstEntry = curr->next;
 		
-		if(/*isLastEntry*/curr == lastEntry){//if its also the lat entry
+		if(curr == lastEntry){//if its also the last entry
 			lastEntry = firstEntry;//schould be NULL.
 		}
 		
@@ -60,7 +58,6 @@ bool LinkedList::addEntry(void* obj){
 	if(size == 0){
 		firstEntry = lastEntry = curr;
 	} else {
-		//if(!list->lastEntry) Serial.println("ERROR: list->lastEntry CANNOT BE NULL HERE!");
 		lastEntry->next = curr;
 		lastEntry = curr;
 	}
@@ -76,11 +73,9 @@ void* LinkedList::removeFirstEntry(){
 		firstEntry = 0;
 		lastEntry = 0;
 	} else {
-		//if(!list->firstEntry) Serial.println("ERROR: list->firstEntry CANNOT BE NULL HERE!");
 		firstEntry = firstEntry->next;
 	}
 	if(!out) return 0;
-	//if(!out) Serial.println("ERROR: out CANNOT BE NULL HERE!");
 	void* data = out->object;
 	free(out);
 	return data;

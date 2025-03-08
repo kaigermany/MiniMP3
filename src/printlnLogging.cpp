@@ -1,9 +1,6 @@
 
 #include <Arduino.h>
-//extern "C" {
-  #include "printlnLogging.h"
-//}
-
+#include "printlnLogging.h"
 
 #ifndef printlnClass2
 #define printlnClass2

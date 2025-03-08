@@ -617,8 +617,6 @@ typedef struct huffcodetabStruct{//size = 16 bytes?
 	char xlen; // max. x-index+
 	char ylen; // max. y-index+
 	char linbits; // number of linbits
-	
-	//int** val;//[][]; // decoder tree
 	const unsigned char (*val)[2];
 	char treelen; // length of decoder tree
 } huffcodetab;
@@ -659,8 +657,6 @@ const huffcodetab htArr[34] = {
 	{.isSpecial = true, .xlen = 1, .ylen = 16, .linbits = 0, .val = ValTab32, .treelen = 1},
 	{.isSpecial = true, .xlen = 1, .ylen = 16, .linbits = 0, .val = ValTab33, .treelen = 1}
 };
-
-
 
 typedef struct gr_info_s_Struct{//size = 40 bytes?
 	int part2_3_length;
@@ -723,7 +719,6 @@ class MP3Parser {
 		
 		MP3Parser();
 		~MP3Parser();
-		//void end();
 		char* runDecode(LinkedList* dataBlocks, int* errorIdOutput);
 };
 #endif

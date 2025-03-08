@@ -14,8 +14,6 @@ inline int Reader::file_read_impl(char* buffer, int numBytes){
 inline int Reader::https_read_impl(char* buffer, int numBytes){
 	if(bytesLeft == -1){
 		int len = client->read((uint8_t*)buffer, numBytes);
-		//print("https_read_impl::len2 = ");
-		//nprintln(len);
 		return len == -1 ? (client->connected() ? 0 : -1) : len;
 	}
 	if(bytesLeft < numBytes){
@@ -23,8 +21,6 @@ inline int Reader::https_read_impl(char* buffer, int numBytes){
 	}
 	int len = client->read((uint8_t*)buffer, numBytes);
 	if(len != -1) bytesLeft -= len;
-	//print("https_read_impl::len = ");
-	//nprintln(len);
 	if(len <= 0){//only if connection is closed, we return -1 !!!
 		return bytesLeft == 0 ? -1 : 0;
 	}
@@ -37,13 +33,11 @@ Reader::Reader(char* server, char* path) {
 	if(!client) return;
 	client->setInsecure();
 	if(client->connect(server, 443)){
-		//Serial.println("connected!");
 		client->print("GET ");
 		client->print(path);
 		client->print(" HTTP/1.1\r\n");
 		client->print("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8\r\n");
 		client->print("Accept-Language: de,en-US;q=0.7,en;q=0.3\r\n");
-		//client->print("Connection: close\r\n");
 		client->print("Connection: keep-alive\r\n");
 		client->print("Host: ");
 		client->print(server);
@@ -57,7 +51,6 @@ Reader::Reader(char* server, char* path) {
 		while(client->connected()){
 			int chr = client->read();
 			if(chr == -1) continue;
-			//Serial.print((char)chr);
 			if(chr == '\n'){
 				if(currHeaderStrLen < 3) break;//min len = "a: b\r\n";
 				currHeaderStrLen = 0;

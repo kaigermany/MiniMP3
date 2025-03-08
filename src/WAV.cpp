@@ -49,8 +49,6 @@ WAVHeader* WAVClass::parseWAVHeader(char* page, int numPageBytes) {
 			
 			dataSize = pageSize;
 			numFrames = len;
-			//AudioFormat localAudioFormat = new AudioFormat(encoding, (float) sampleRate, bitsPerSample, numChannels, len, (float) sampleRate, false);
-			//return new AudioInputStream(paramInputStream, localAudioFormat, pageSize / len);
 			
 			result->dataStart = absoluteStartPos;
 			result->dataLength = dataSize;
@@ -99,11 +97,7 @@ WAVHeader* WAVClass::parseWAVHeader(char* page, int numPageBytes) {
 				result->errorText = "parseWAVHeader() : Invalid bitsPerSample";
 				return result;
 			}
-			/*
-			if (bitsPerSample == 8 && encoding.equals(Encoding.PCM_SIGNED)) {
-				encoding = Encoding.PCM_UNSIGNED;
-			}
-			*/
+			//if (bitsPerSample == 8 && encoding.equals(Encoding.PCM_SIGNED)) encoding = Encoding.PCM_UNSIGNED;
 			int bytesLeft = pageSize - 16;//16 bytes read.
 			readPos += bytesLeft;
 		} else {

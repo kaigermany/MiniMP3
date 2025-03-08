@@ -25,7 +25,6 @@ uint64_t AudioOutputStreamClass::timerTriggerCounter = 0;
 void AudioOutputStreamClass::timerListener(){
 	if(!firstFrame) return;
 
-	//if(timerCorrection >= 33.570145) return;
 	timerCorrection += 1000000;
 	if(timerCorrection >= 33570145) {//finetune the fact that the timer event is a little bit to fast.
 		timerCorrection -= 33570145;
