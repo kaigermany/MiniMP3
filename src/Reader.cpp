@@ -27,7 +27,42 @@ inline int Reader::https_read_impl(char* buffer, int numBytes){
 	return len;
 }
 
-Reader::Reader(char* server, char* path) {
+char* Reader::splitUrl(char* in, char** outServerName) {
+	if (!in || !outServerName) return NULL;
+
+	const char* prefix1 = "http://";
+	const char* prefix2 = "https://";
+	char* start = NULL;
+
+	// Check for HTTP or HTTPS prefix
+	if (strncmp(in, prefix1, strlen(prefix1)) == 0) {
+		start = in + strlen(prefix1);
+	} else if (strncmp(in, prefix2, strlen(prefix2)) == 0) {
+		start = in + strlen(prefix2);
+	} else {
+		return NULL;  // No valid prefix found
+	}
+
+	// Find first '/' after the server name
+	char* path = strchr(start, '/');
+	if (!path) {
+		// No path, return root "/"
+		*outServerName = strdup(start);
+		return "/";
+	}
+
+	// Allocate server name (up to the first '/')
+	size_t serverLen = path - start;
+	*outServerName = (char*)malloc(serverLen + 1);
+	if (!*outServerName) return NULL;
+
+	strncpy(*outServerName, start, serverLen);
+	(*outServerName)[serverLen] = 0;//dont forget end-symbol
+
+	return path; // Return pointer to path part
+}
+
+void Reader::openHttps(char* server, char* path) {
 	file = 0;
 	client = new WiFiClientSecure();
 	if(!client) return;
@@ -79,7 +114,19 @@ Reader::Reader(char* server, char* path) {
 	}
 }
 
-Reader::Reader(char* filepath) {
+Reader::Reader(char* server, char* path) {
+	openHttps(server, path);
+}
+
+Reader::Reader(char* filepath) {//also checks for https sources.
+	char* serverName = NULL;
+    char* path = splitUrl(filepath, &serverName);
+	if (path) {
+		openHttps(serverName, path);
+		free(serverName);
+		return;
+	}
+	
 	file = new File( SD.open(filepath) );
 	client = 0;//client will not be initialized as 0 by default; required for destructor
 }

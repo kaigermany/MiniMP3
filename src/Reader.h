@@ -14,6 +14,9 @@ class Reader{
 		
 		inline int file_read_impl(char* buffer, int numBytes);
 		inline int https_read_impl(char* buffer, int numBytes);
+		
+		char* splitUrl(char* in, char** outServerName);
+		void openHttps(char* server, char* path);
 	public:
 		Reader(char* server, char* path);
 		Reader(char* filepath);
