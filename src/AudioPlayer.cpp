@@ -362,7 +362,6 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 			prepareAndStoreAudio(data, mp3->lastFrameSampleCount, mp3->isStereo, mp3->samplingFrequency, autoAmplify);
 			free(data);
 		} else if(wav){
-			
 			int returnCode = fillReadBuffers();
 			if(returnCode == 2){
 				goto checkForTimeout;
@@ -404,10 +403,10 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 					}				
 				}
 				refreshBufferList();
-				
 				prepareAndStoreAudio(outBuf, len, wav->numChannels == 2, wav->sampleRate, autoAmplify);
 				free(outBuf);
-				
+			} else {
+				return 3;
 			}
 		}
 	}
