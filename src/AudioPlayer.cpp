@@ -23,6 +23,7 @@ bool testForMp3(char* headerSector){
 	} else if(firstByte == 73){//pattern: 73 68 51 (mp3 ID3 metadata tag)
 		return headerSector[1] == 68 && headerSector[2] == 51;//mp3 ID3-Tag detected.
 	}
+	return false;
 }
 
 void AudioPlayerClass::detectDecoder(){
@@ -31,7 +32,13 @@ void AudioPlayerClass::detectDecoder(){
 	ReadableBlock* block = (ReadableBlock*)inputBuffer->firstEntry->object;
 	char* data = block->buf;
 	int len = block->len;
-	
+	/*
+	for(int i=0; i<len; i++){
+		nprint(i);
+		print(": ");
+		nprintln(data[i]);
+	}
+	*/
 	if(len >= 3){
 		if(testForMp3(data)){
 			mp3 = new MP3Parser();
@@ -77,14 +84,9 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 		
 		char* buf = (char*)malloc(bufSize);
 		if(!buf) return 1;
-		ReadableBlock* block = new ReadableBlock(buf, 0, bufSize);
-		if(!block){
-			free(buf);
-			return 1;
-		}
 		int l = currentSource->read(buf, bufSize);//-1: EOF, 0: no new bytes right now, 1..?: len of buf
 		if(l == 0){
-			free(block);
+			//free(block);
 			free(buf);
 			return 2;
 		}
@@ -92,12 +94,20 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 			currentSource->close();
 			free(currentSource);
 			currentSource = 0;
-			free(block);
+			//free(block);
 			free(buf);
 			return 2;
 		}
-		if(l < bufSize) buf = (char*)realloc(buf, l);//shrink if possible, mostly used on WEB sources.
-		block->len = l;//update size value
+		if(l < bufSize) {
+			buf = (char*)realloc(buf, l);//shrink if possible, mostly used on WEB sources.
+			if(!buf) println("realloc() error!");
+		}
+		//block->len = l;//update size value
+		ReadableBlock* block = new ReadableBlock(buf, 0, /*bufSize*/l);
+		if(!block){
+			free(buf);
+			return 1;
+		}
 		if(inputBuffer->addEntry(block)){//if addEntry() fails then... practically rare or impossible.
 			free(block);
 			free(buf);
@@ -186,6 +196,8 @@ void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, 
 void AudioPlayerClass::awaitBufferDrained(){
 	while(1){
 		char code = updateLoop();
+		print("awaitBufferDrained().code = ");
+		nprintln(code);
 		if(code) break;
 		delay(10);
 	}
@@ -211,7 +223,7 @@ void AudioPlayerClass::closeSource(){
 	if(!currentSource) return;
 	currentSource->close();//future read() calls return -1 in any case.
 	
-	awaitBufferDrained();//flush
+	if(inputBuffer) awaitBufferDrained();//flush
 	
 	free(currentSource);//drop reader object
 	currentSource = 0;
@@ -230,22 +242,23 @@ void AudioPlayerClass::closeSource(){
 //closes and deallocated the player.
 void AudioPlayerClass::close(){
 	if(inputBuffer){
-		
 		LinkedListEntry* next = inputBuffer->firstEntry;
 		while(next){
 			ReadableBlock* block = (ReadableBlock*)(next->object);
 			free(block->buf);
 			next = next->next;
 		}
-		inputBuffer->clear();
+		inputBuffer->clear(true);
 		
 		//now no buffers are left to play in drain loop.
 		closeSource();
+		
 		
 		free(inputBuffer);//drop input list pointer
 		inputBuffer = 0;
 	}
 	AudioOutputStream.stop();//drop output buffers & stop player timer
+		println("AudioPlayerClass.close() done.");
 }
 
 void AudioPlayerClass::backupOffsets(){
@@ -354,6 +367,7 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 				} else {
 					Serial.print("mp3 errorCode = ");
 					Serial.println(error);
+					if(error == MP3_ERRORCODE_UNKNOWN) return 2;
 				}
 			} else {
 				refreshBufferList();//removes used buffers.
