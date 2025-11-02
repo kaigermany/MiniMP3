@@ -17,7 +17,7 @@ class LinkedList{
 		LinkedList();
 		~LinkedList();
 		
-		void clear();
+		void clear(bool withContents);
 		void removeEntry(void* obj);
 		bool addEntry(void* obj);
 		void* removeFirstEntry();

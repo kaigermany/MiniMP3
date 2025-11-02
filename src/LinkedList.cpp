@@ -3,18 +3,20 @@
 
 LinkedList::LinkedList() : size(0),firstEntry(nullptr),lastEntry(nullptr) {}
 LinkedList::~LinkedList(){
-	clear();
+	clear(false);
 }
 
-void LinkedList::clear(){
+void LinkedList::clear(bool withContents){
 	LinkedListEntry* next = firstEntry;
 	firstEntry = 0;
 	lastEntry = 0;
 	while(next){
+		if(withContents) free(next->object);
 		LinkedListEntry* temp = next->next;
 		free(next);
 		next = temp;
 	}
+	size = 0;
 }
 
 void LinkedList::removeEntry(void* obj){
