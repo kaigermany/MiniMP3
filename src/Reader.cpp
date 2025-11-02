@@ -5,6 +5,8 @@
 inline int Reader::file_read_impl(char* buffer, int numBytes){
 	int len = file->read((uint8_t*)buffer, numBytes);
 	if(len <= 0){//only if connection is closed, we return -1 !!!
+		if(!SD.exists("/")) return -1;
+		
 		len = file->position() != file->size() ? 0 : -1;
 		if(file->available() <= 0) len = -1;
 	}
@@ -12,6 +14,7 @@ inline int Reader::file_read_impl(char* buffer, int numBytes){
 }
 
 inline int Reader::https_read_impl(char* buffer, int numBytes){
+	if(!client->connected()) return -1;
 	if(bytesLeft == -1){
 		int len = client->read((uint8_t*)buffer, numBytes);
 		return len == -1 ? (client->connected() ? 0 : -1) : len;
@@ -108,9 +111,9 @@ void Reader::openHttps(char* server, char* path) {
 			}
 			
 			currHeaderStrLen++;
-		};
+		}
 		bytesLeft = lenVal;
-		client = client;
+		//client = client;
 	}
 }
 
