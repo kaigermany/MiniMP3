@@ -32,13 +32,7 @@ void AudioPlayerClass::detectDecoder(){
 	ReadableBlock* block = (ReadableBlock*)inputBuffer->firstEntry->object;
 	char* data = block->buf;
 	int len = block->len;
-	/*
-	for(int i=0; i<len; i++){
-		nprint(i);
-		print(": ");
-		nprintln(data[i]);
-	}
-	*/
+
 	if(len >= 3){
 		if(testForMp3(data)){
 			mp3 = new MP3Parser();
@@ -99,8 +93,8 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 			return 2;
 		}
 		if(l < bufSize) {
-			buf = (char*)realloc(buf, l);//shrink if possible, mostly used on WEB sources.
-			if(!buf) println("realloc() error!");
+			char* newLocation = (char*)realloc(buf, l);//shrink if possible, mostly used on WEB sources.
+			if(newLocation) buf = newLocation;//in case of failure: change nothing!
 		}
 		//block->len = l;//update size value
 		ReadableBlock* block = new ReadableBlock(buf, 0, /*bufSize*/l);
@@ -225,7 +219,7 @@ void AudioPlayerClass::closeSource(){
 	
 	if(inputBuffer) awaitBufferDrained();//flush
 	
-	free(currentSource);//drop reader object
+	delete currentSource;//drop reader object
 	currentSource = 0;
 	
 	if(wav){//drop wav header
@@ -233,8 +227,7 @@ void AudioPlayerClass::closeSource(){
 		wav = 0;
 	}
 	if(mp3){//drop mp3 instance
-		mp3->~MP3Parser();
-		free(mp3);
+		delete mp3;
 		mp3 = 0;
 	}
 }

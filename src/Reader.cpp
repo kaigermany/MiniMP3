@@ -142,12 +142,12 @@ Reader::Reader(File* fileArg) {
 void Reader::close(){
 	if(file){
 		file->close();
-		free(file);
+		delete file;
 		file = 0;
 	}
 	if(client){
 		client->stop();
-		free(client);
+		delete client;
 		client = 0;
 	}
 }
