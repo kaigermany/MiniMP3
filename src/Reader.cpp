@@ -122,6 +122,11 @@ Reader::Reader(char* server, char* path) {
 }
 
 Reader::Reader(char* filepath) {//also checks for https sources.
+	if(!filepath){
+		file = 0;
+		client = 0;
+		return;
+	}
 	char* serverName = NULL;
     char* path = splitUrl(filepath, &serverName);
 	if (path) {

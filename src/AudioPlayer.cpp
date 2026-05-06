@@ -251,7 +251,6 @@ void AudioPlayerClass::close(){
 		inputBuffer = 0;
 	}
 	AudioOutputStream.stop();//drop output buffers & stop player timer
-		println("AudioPlayerClass.close() done.");
 }
 
 void AudioPlayerClass::backupOffsets(){
@@ -337,6 +336,9 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 	if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
 	
 	for(char maxRetrys=0; maxRetrys<2 && AudioOutputStream.getCurrentBufferElementCount() < 5; maxRetrys++){
+		if(!currentSource) {
+			return 3;
+		}
 		if(mp3){
 			backupOffsets();
 			int errorCode[1];
