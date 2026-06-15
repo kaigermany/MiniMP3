@@ -5,6 +5,8 @@
 #include "ReadableBlock.h"
 #include "printlnLogging.h"
 
+#define USE_IRAM_ATTR_FLAG
+
 // Constructor
 MP3Parser::MP3Parser() : instance(nullptr) {
 	print("sizeof(Mp3Instance) = ");
@@ -1683,7 +1685,11 @@ void SynthesisFilter_compute_subroutine1(float* src, int iteratorLevel, float* o
 	}
 }
 
-void SynthesisFilter_compute(float* s, int pos, float* v) {
+void
+#ifdef USE_IRAM_ATTR_FLAG
+IRAM_ATTR
+#endif
+SynthesisFilter_compute(float* s, int pos, float* v) {
 	// Compute new values via a fast cosine transform.
 	float p1[32];
 	float p[32];
@@ -1747,7 +1753,11 @@ void SynthesisFilter_compute(float* s, int pos, float* v) {
 	for (int i = 17; i < 32; i++) v[(i * 16) + pos + off2] = new_v[47 - i];
 }
 
-void SynthesisFilter_input_and_compute(float* s, int pos, float* output, float* v) {
+void 
+#ifdef USE_IRAM_ATTR_FLAG
+IRAM_ATTR
+#endif
+SynthesisFilter_input_and_compute(float* s, int pos, float* output, float* v) {
 	pos &= 0x0F;
 	SynthesisFilter_compute(s, pos, v);
 	SynthesisFilter_compute_pcm_samples4_universal(v, (pos & 1) * 512, pos, output);
