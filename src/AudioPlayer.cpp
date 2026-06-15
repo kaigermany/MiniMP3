@@ -184,7 +184,10 @@ void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, 
 			outputAudio[c++] = val;
 		}
 	}
-	AudioOutputStream.write(outputAudio, numSamples);
+	if(!AudioOutputStream.write(outputAudio, numSamples)){
+		//consume failed:
+		free(outputAudio);
+	}
 }
 
 void AudioPlayerClass::awaitBufferDrained(){
@@ -210,17 +213,33 @@ void AudioPlayerClass::setSource(Reader* reader){
 			close();//save close of everything
 		}
 	}
+	//println("setSource() done.");
 }
 
 //closes the current source and await the decoding of all buffers left in input queue.
 void AudioPlayerClass::closeSource(){
-	if(!currentSource) return;
-	currentSource->close();//future read() calls return -1 in any case.
+	if(currentSource) {
+		currentSource->close();//future read() calls return -1 in any case.
+		
+		if(inputBuffer) awaitBufferDrained();//flush
+		
+		delete currentSource;//drop reader object
+		currentSource = 0;
+	}
 	
-	if(inputBuffer) awaitBufferDrained();//flush
-	
-	delete currentSource;//drop reader object
-	currentSource = 0;
+	if(inputBuffer){
+		LinkedListEntry* next = inputBuffer->firstEntry;
+		while(next){
+			ReadableBlock* block = (ReadableBlock*)(next->object);
+			free(block->buf);
+			next = next->next;
+		}
+		inputBuffer->clear(true);
+		
+		
+		free(inputBuffer);//drop input list pointer
+		inputBuffer = 0;
+	}
 	
 	if(wav){//drop wav header
 		free(wav);
@@ -230,6 +249,7 @@ void AudioPlayerClass::closeSource(){
 		delete mp3;
 		mp3 = 0;
 	}
+	//println("closeSource() done.");
 }
 
 //closes and deallocated the player.
