@@ -14,6 +14,9 @@
 #define ClockFrequenzyMHz 80
 
 
+#define TRY_USE_IRAM
+
+
 hw_timer_t* AudioOutputStreamClass::Timer0_Cfg = nullptr;
 int AudioOutputStreamClass::timerCorrection = 0;
 AudioOutputStreamClass::DataEntry* AudioOutputStreamClass::firstFrame = nullptr;
@@ -102,10 +105,20 @@ void AudioOutputStreamClass::stop(){
 	}
 }
 
+inline void* mallocInternal(size_t size){
+	#ifdef TRY_USE_IRAM
+		void* ptr = heap_caps_malloc((size + 3) & -4, MALLOC_CAP_32BIT);
+		if(ptr) return ptr;
+		return malloc(size);
+	#else
+		return malloc(size);
+	#endif
+}
+
 //add a new data block. expects 8bit stereo with 44100Hz samplerate.
-void AudioOutputStreamClass::write(void* buf, int numBytes){//expects 8bit stereo PCM audio data.
-	DataEntry* e = (DataEntry*)malloc(sizeof(DataEntry));
-	if(!e) return;
+bool AudioOutputStreamClass::write(void* buf, int numBytes){//expects 8bit stereo PCM audio data.
+	DataEntry* e = (DataEntry*)mallocInternal(sizeof(DataEntry));
+	if(!e) return false;
 	e->dataPtr = (char*)buf;
 	e->nextEntryPtr = 0;
 	e->size = numBytes & -2; //-2 == ...1111 1110
@@ -121,6 +134,7 @@ void AudioOutputStreamClass::write(void* buf, int numBytes){//expects 8bit stere
 		bufferSize += 1;
 	}
 	interrupts();
+	return true;
 }
 
 int AudioOutputStreamClass::getCurrentBufferElementCount(){

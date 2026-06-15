@@ -3,12 +3,18 @@
 #define AudioOutputStream_H
 #include <Arduino.h>
 
+#define TRY_USE_IRAM
+
 class AudioOutputStreamClass {
 	public:
 		typedef struct DataEntryStruct {
 			char* dataPtr;
 			struct DataEntryStruct* nextEntryPtr;
-			unsigned short size;
+			#ifdef TRY_USE_IRAM
+				uint32_t size;
+			#else
+				uint16_t size;
+			#endif
 		} DataEntry;
 		
 	private:
@@ -26,7 +32,7 @@ class AudioOutputStreamClass {
 	public:
 		static void start();
 		static void stop();
-		static void write(void* buf, int numBytes);
+		static bool write(void* buf, int numBytes);
 		static int getCurrentBufferElementCount();
 		static uint64_t getCurrentSampleCount();
 		static void setCurrentSampleCount(uint64_t newValue);
