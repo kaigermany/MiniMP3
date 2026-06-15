@@ -1,6 +1,8 @@
 
 #include "LinkedList.h"
 
+#define TRY_USE_IRAM
+
 LinkedList::LinkedList() : size(0),firstEntry(nullptr),lastEntry(nullptr) {}
 LinkedList::~LinkedList(){
 	clear(false);
@@ -52,8 +54,18 @@ void LinkedList::removeEntry(void* obj){
 	}
 }
 
+inline void* mallocInternal(size_t size){
+	#ifdef TRY_USE_IRAM
+		void* ptr = heap_caps_malloc((size + 3) & -4, MALLOC_CAP_32BIT);
+		if(ptr) return ptr;
+		return malloc(size);
+	#else
+		return malloc(size);
+	#endif
+}
+
 bool LinkedList::addEntry(void* obj){
-	LinkedListEntry* curr = (LinkedListEntry*)malloc(sizeof(LinkedListEntry));
+	LinkedListEntry* curr = (LinkedListEntry*)mallocInternal(sizeof(LinkedListEntry));
 	if(!curr) return 1;
 	curr->object = obj;
 	curr->next = 0;
