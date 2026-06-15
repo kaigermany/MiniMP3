@@ -28,6 +28,8 @@ class AudioPlayerClass{
 		static void backupOffsets();
 		static void restoreOffsets();
 		static void refreshBufferList();
+		
+		static bool checkForTimeout();
 	public:
 		static void setSource(Reader* reader);
 		static void close();

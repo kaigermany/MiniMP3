@@ -327,8 +327,18 @@ int DataReader_read2(LinkedList* list){
 	return -1;
 }
 
-char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header found, 1: OutOfMemory
+bool AudioPlayerClass::checkForTimeout(){
 	const int timeoutMaxDurationMillis = 1500;
+	if(millis() - lastSuccessfullRead > timeoutMaxDurationMillis){
+		print("timed out: ");
+		nprintln((int)(millis() - lastSuccessfullRead));
+		return 3;
+	} else {
+		return 0;
+	}
+}
+
+char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header found, 1: OutOfMemory
 	if(!currentSource) {
 		return 3;
 	}
@@ -349,12 +359,12 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 				if(error == MP3_ERRORCODE_END_OF_INPUT_BUFFER_REACHED){//ran dry...
 					restoreOffsets();
 					if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
-					if(inputBuffer->size == 0) goto checkForTimeout;
+					if(inputBuffer->size == 0) return checkForTimeout();
 					break;
 				} else if(error == MP3_ERRORCODE_BUFFER_HAS_NO_STARTSEQUENCE){//current buffer does not contain any usable data!
 					refreshBufferList();//this way we may get rid of empty sectors.
 					if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
-					if(inputBuffer->size == 0) goto checkForTimeout;//if no more data left then return EOF state.
+					if(inputBuffer->size == 0) return checkForTimeout();//if no more data left then return EOF state.
 					return 2;
 				} else if(error == MP3_ERRORCODE_INSUFFICENT_MEMORY/* && getNumBlocksInDACBuffer() > 0*/){
 					restoreOffsets();
@@ -373,7 +383,7 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 		} else if(wav){
 			int returnCode = fillReadBuffers();
 			if(returnCode == 2){
-				goto checkForTimeout;
+				return checkForTimeout();
 			} else {
 				lastSuccessfullRead = millis();
 			}
@@ -420,15 +430,6 @@ char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header foun
 		}
 	}
 	return 0;
-	
-	checkForTimeout:
-	if(millis() - lastSuccessfullRead > timeoutMaxDurationMillis){
-		print("timed out: ");
-		nprintln((int)(millis() - lastSuccessfullRead));
-		return 3;
-	} else {
-		return 0;
-	}
 }
 
 inline long long AudioPlayerClass::getCurrentSampleCount(){
