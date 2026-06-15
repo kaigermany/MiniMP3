@@ -25,7 +25,7 @@ int AudioOutputStreamClass::playbackPointer = 0;
 int AudioOutputStreamClass::bufferSize = 0;
 uint64_t AudioOutputStreamClass::timerTriggerCounter = 0;
 
-void AudioOutputStreamClass::timerListener(){
+void IRAM_ATTR AudioOutputStreamClass::timerListener(){
 	if(!firstFrame) return;
 
 	timerCorrection += 1000000;

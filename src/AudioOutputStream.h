@@ -27,7 +27,7 @@ class AudioOutputStreamClass {
 		static int bufferSize;
 		static uint64_t timerTriggerCounter;
 		
-		static void timerListener();
+		static void IRAM_ATTR timerListener();
 		
 	public:
 		static void start();
