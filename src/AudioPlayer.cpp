@@ -36,7 +36,7 @@ void AudioPlayerClass::detectDecoder(){
 	if(len >= 3){
 		if(testForMp3(data)){
 			mp3 = new MP3Parser();
-println("mp3 detected.");
+//println("mp3 detected.");
 			return;
 		}
 	}
@@ -72,7 +72,11 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 		inputBuffer = new LinkedList();
 		if(!inputBuffer) return 1;
 	}
+	if(!currentSource){
+		return 2;
+	}
 	const int bufSize = 512*2;
+	char addedBlocks = 0;
 	for(int retryCounter=0; retryCounter<4; retryCounter++){
 		if(inputBuffer->size >= 10) return 0;//return that our buffer is greatly filled.
 		
@@ -86,8 +90,9 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 		}
 		if(l == -1){
 			currentSource->close();
-			free(currentSource);
+			delete currentSource;
 			currentSource = 0;
+
 			//free(block);
 			free(buf);
 			return 2;
@@ -107,8 +112,9 @@ char AudioPlayerClass::fillReadBuffers(){//1: OOM, 2: no more data read
 			free(buf);
 			return 1;
 		}
+		addedBlocks++;
 	}
-	return 2;
+	return addedBlocks == 0 ? 2 : 0;
 }
 
 void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, int freq, bool autoAmplify){
@@ -193,10 +199,11 @@ void AudioPlayerClass::prepareAndStoreAudio(char* data, int len, bool isStereo, 
 void AudioPlayerClass::awaitBufferDrained(){
 	while(1){
 		char code = updateLoop();
-		print("awaitBufferDrained().code = ");
-		nprintln(code);
-		if(code) break;
-		delay(10);
+		//print("awaitBufferDrained().code = ");
+		//nprintln(code);
+		if(code == 2 || code == 3) {//if invalid data or EOF then exit.
+			return;
+		}
 	}
 }
 
@@ -213,7 +220,6 @@ void AudioPlayerClass::setSource(Reader* reader){
 			close();//save close of everything
 		}
 	}
-	//println("setSource() done.");
 }
 
 void AudioPlayerClass::freeInputBuffer(){
@@ -336,33 +342,45 @@ bool AudioPlayerClass::checkForTimeout(){
 }
 
 char AudioPlayerClass::updateLoop(){//3: EOF, 2: mp3 invalid data/no header found, 1: OutOfMemory
-	if(!currentSource) {
+	if(!currentSource && inputBuffer->size == 0) {
+		println("return 3 because of empty buffers! #1");
 		return 3;
 	}
 	
 	if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
 	
-	for(char maxRetrys=0; maxRetrys<2 && AudioOutputStream.getCurrentBufferElementCount() < 5; maxRetrys++){
-		if(!currentSource) {
+	for(char maxRetrys=0; maxRetrys<4 && AudioOutputStream.getCurrentBufferElementCount() < 8; maxRetrys++){
+		if(!currentSource && inputBuffer->size == 0) {
+			println("return 3 because of empty buffers! #2");
 			return 3;
 		}
 		if(mp3){
 			backupOffsets();
 			int errorCode[1];
 			char* data = mp3->runDecode(inputBuffer, &(errorCode[0]));
+			
 			int error = errorCode[0];
 			if(!data && error){
+				print("mp3-error: ");
+				nprintln(error);
 				int dataWasAdded = 0;
 				if(error == MP3_ERRORCODE_END_OF_INPUT_BUFFER_REACHED){//ran dry...
 					restoreOffsets();
-					if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
+					//if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
+					if(fillReadBuffers() == 2){//no more data valailable?
+						return 3;
+					}
 					if(inputBuffer->size == 0) return checkForTimeout();
 					break;
 				} else if(error == MP3_ERRORCODE_BUFFER_HAS_NO_STARTSEQUENCE){//current buffer does not contain any usable data!
 					refreshBufferList();//this way we may get rid of empty sectors.
 					if(fillReadBuffers() < 2) lastSuccessfullRead = millis();
-					if(inputBuffer->size == 0) return checkForTimeout();//if no more data left then return EOF state.
-					return 2;
+					
+					if(inputBuffer->size == 0) {
+						return checkForTimeout();//if no more data left then return EOF state.
+					} else {
+						continue;//return 0;//else: buffer got refilled! so this cant be an missing-data-error. //2;
+					}
 				} else if(error == MP3_ERRORCODE_INSUFFICENT_MEMORY/* && getNumBlocksInDACBuffer() > 0*/){
 					restoreOffsets();
 					return 1;
