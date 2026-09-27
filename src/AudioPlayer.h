@@ -30,6 +30,7 @@ class AudioPlayerClass{
 		static void refreshBufferList();
 		
 		static bool checkForTimeout();
+		static void freeInputBuffer();
 	public:
 		static void setSource(Reader* reader);
 		static void close();

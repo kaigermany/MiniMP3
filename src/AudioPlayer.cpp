@@ -216,17 +216,7 @@ void AudioPlayerClass::setSource(Reader* reader){
 	//println("setSource() done.");
 }
 
-//closes the current source and await the decoding of all buffers left in input queue.
-void AudioPlayerClass::closeSource(){
-	if(currentSource) {
-		currentSource->close();//future read() calls return -1 in any case.
-		
-		if(inputBuffer) awaitBufferDrained();//flush
-		
-		delete currentSource;//drop reader object
-		currentSource = 0;
-	}
-	
+void AudioPlayerClass::freeInputBuffer(){
 	if(inputBuffer){
 		LinkedListEntry* next = inputBuffer->firstEntry;
 		while(next){
@@ -236,10 +226,23 @@ void AudioPlayerClass::closeSource(){
 		}
 		inputBuffer->clear(true);
 		
-		
 		free(inputBuffer);//drop input list pointer
 		inputBuffer = 0;
 	}
+}
+
+//closes the current source and await the decoding of all buffers left in input queue.
+void AudioPlayerClass::closeSource(){
+	if(currentSource) {
+		currentSource->close();//future read() calls return -1 in any case.
+		
+		delete currentSource;//drop reader object
+		currentSource = 0;
+	}
+	
+	if(inputBuffer) awaitBufferDrained();//flush
+	
+	freeInputBuffer();
 	
 	if(wav){//drop wav header
 		free(wav);
@@ -249,27 +252,15 @@ void AudioPlayerClass::closeSource(){
 		delete mp3;
 		mp3 = 0;
 	}
-	//println("closeSource() done.");
 }
 
 //closes and deallocated the player.
 void AudioPlayerClass::close(){
-	if(inputBuffer){
-		LinkedListEntry* next = inputBuffer->firstEntry;
-		while(next){
-			ReadableBlock* block = (ReadableBlock*)(next->object);
-			free(block->buf);
-			next = next->next;
-		}
-		inputBuffer->clear(true);
-		
-		//now no buffers are left to play in drain loop.
-		closeSource();
-		
-		
-		free(inputBuffer);//drop input list pointer
-		inputBuffer = 0;
-	}
+	freeInputBuffer();
+	
+	//now no buffers are left to play in drain loop.
+	closeSource();
+	
 	AudioOutputStream.stop();//drop output buffers & stop player timer
 }
 
@@ -331,20 +322,6 @@ bool DataReader_readArr2(LinkedList* list, char* array, int len){
 		next = next->next;
 	}
 	return 0;
-}
-
-int DataReader_read2(LinkedList* list){
-	LinkedListEntry* next = list->firstEntry;
-	while(next){
-		ReadableBlock* block = (ReadableBlock*)(next->object);
-		if(block->off < block->len){
-			int val = (block->buf[block->off]) & 0xFF;
-			block->off++;
-			return val;
-		}
-		next = next->next;
-	}
-	return -1;
 }
 
 bool AudioPlayerClass::checkForTimeout(){
