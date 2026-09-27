@@ -704,6 +704,10 @@ const int fast_pow2_scale4_fractionTable[4] = {
 	0b10101110100010011111101
 };
 // Split into integer and fractional parts
+
+#ifdef USE_IRAM_ATTR_FLAG
+IRAM_ATTR
+#endif
 float fast_pow2_scale4(int param) {
 	int integer_part = param >> 2;
 	integer_part = (127 + integer_part) << 23; // 127 is the bias for the exponent
@@ -713,6 +717,9 @@ float fast_pow2_scale4(int param) {
 	//return result_int;
 }
 
+#ifdef USE_IRAM_ATTR_FLAG
+IRAM_ATTR
+#endif
 inline float fastCubeRoot(float x) {//expecting x = integer, 0 .. 8192 !!!
     if (x <= 1) return x;  // Cube root of 0 is 0
 	int i = *(int*)&x;  // Treat the float as an int
@@ -725,13 +732,18 @@ inline float fastCubeRoot(float x) {//expecting x = integer, 0 .. 8192 !!!
     return guess;
 }
 
+#ifdef USE_IRAM_ATTR_FLAG
+IRAM_ATTR
+#endif
 inline float pow43(int x){
 	float y = fastCubeRoot(x);
 	y *= y;
 	y *= y;
 	return y;
 }
-
+#ifdef USE_IRAM_ATTR_FLAG
+IRAM_ATTR
+#endif
 void dequantize_sample(float(*xr_1d)[SS_LIMIT], int ch, int gr, int(*scalefac_s)[13], int* scalefac_l,
 		gr_info_s* gr_info, int sfreq, int* is_1d, int iterationCount) {
 	int next_cb_boundary;
